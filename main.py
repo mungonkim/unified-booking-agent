@@ -145,9 +145,14 @@ async def run_checker():
 
                     if menu == '1':
                         print(f"\n⚡ 오늘부터 순회하며 가장 빠른 예약 일시 탐색 중...")
-                        target_date, available_times = await find_earliest_available(entry_iframe)
+                        target_date, available_times, status = await find_earliest_available(entry_iframe)
 
-                        if target_date:
+                        if status == "unknown_markup":
+                            print("\n--------------------------------------------------")
+                            print("⚠️ 페이지 마크업을 인식하지 못했습니다 (사이트 구조가 바뀌었을 수 있음).")
+                            print("   debug/ 폴더에 저장된 HTML/스크린샷을 확인해 주세요.")
+                            print("--------------------------------------------------")
+                        elif target_date:
                             print("\n--------------------------------------------------")
                             print(f"🎉 가장 빠른 예약 가능 날짜 발견!")
                             print(f"📅 날짜: {target_date.strftime('%Y년 %m월 %d일 (%a)')}")
@@ -173,6 +178,9 @@ async def run_checker():
                             print(f"❌ {target_day}일은 정기 휴무일이거나 예약 가능한 시간대가 없습니다.")
                         elif status == "disabled":
                             print(f"❌ {target_day}일은 휴일/휴무일 또는 예약 불가능한 날짜입니다.")
+                        elif status == "unknown_markup":
+                            print(f"⚠️ {target_day}일의 시간 슬롯 마크업을 인식하지 못했습니다.")
+                            print("   debug/ 폴더에 저장된 HTML/스크린샷을 확인해 주세요.")
                         else:
                             print(f"❌ 달력에서 {target_day}일을 찾을 수 없습니다.")
                         print("--------------------------------------------------")

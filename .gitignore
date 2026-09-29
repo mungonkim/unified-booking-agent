@@ -7,8 +7,15 @@ __pycache__/
 .env
 user_data/
 
+# 마크업 인식 실패 시 자동 저장되는 진단용 HTML/스크린샷 (실제 예약 페이지 구조 포함)
+debug/
+
 # 핵심 알고리즘(셀렉터/예약 로직) — 원격 저장소에는 올리지 않고 로컬에만 둔다
 booking_engine.py
+recommend_engine.py
+
+# 장소 추천 후보 캐시 (실제 네이버 데이터 포함, ADR-010)
+recommend_cache.json
 
 # phase execution outputs
 phases/**/phase*-output.json
