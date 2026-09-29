@@ -1,0 +1,385 @@
+<title>통합 예약 에이전트</title>
+<style>
+  :root {
+    --bg: #0b0d10;
+    --panel: #14171c;
+    --panel-2: #191d23;
+    --border: #262b33;
+    --text: #edeef0;
+    --text-dim: #9aa0a8;
+    --text-faint: #5b626c;
+    --amber: #f2a93b;
+    --amber-dim: #8a6526;
+    --live: #4cc38a;
+    --live-dim: #234a3a;
+    --planned: #6b7280;
+    --planned-dim: #2a2d33;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans KR', 'Noto Sans KR', system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    padding-inline: 20px;
+  }
+
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+
+  .wrap { max-width: 880px; margin: 0 auto; }
+
+  a { color: inherit; }
+
+  code, .mono { font-family: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace; }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 10;
+    background: rgba(11, 13, 16, 0.85);
+    backdrop-filter: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar-inner {
+    max-width: 880px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 0;
+    gap: 12px;
+  }
+  .topbar-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--live); flex: none; }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .topbar-link {
+    color: var(--amber);
+    text-decoration: none;
+    border-bottom: 1px solid var(--amber-dim);
+  }
+  .topbar-link:hover { border-bottom-color: var(--amber); }
+
+  /* ---------- hero ---------- */
+  .hero { padding-block: 56px 40px; }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    color: var(--text-faint);
+    margin-bottom: 18px;
+  }
+  h1.title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-weight: 400;
+    font-size: clamp(2.2rem, 7vw, 3.6rem);
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+  }
+  h1.title .hl { color: var(--amber); }
+  .lede {
+    margin-top: 20px;
+    max-width: 60ch;
+    color: var(--text-dim);
+    font-size: 16px;
+  }
+  .lede strong { color: var(--text); font-weight: 600; }
+
+  .status-pill {
+    margin-top: 26px;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 14px;
+    border: 1px solid var(--live-dim);
+    background: rgba(76, 195, 138, 0.08);
+    border-radius: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px;
+    letter-spacing: 0.06em;
+    color: var(--live);
+  }
+  .status-pill .dot { background: var(--live); }
+
+  /* ---------- section heading ---------- */
+  .section { padding-block: 36px; border-top: 1px solid var(--border); }
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
+  .section-head h2 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+  .section-head .count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+
+  /* ---------- board ---------- */
+  .board-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 6px; }
+  table.board {
+    width: 100%;
+    min-width: 560px;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  table.board thead th {
+    text-align: left;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--text-faint);
+    font-weight: 500;
+    padding: 10px 14px;
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  table.board td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  table.board tbody tr:last-child td { border-bottom: none; }
+  table.board tbody tr { background: var(--panel); }
+  table.board tbody tr:nth-child(odd) { background: var(--panel); }
+  table.board tbody tr:nth-child(even) { background: #121519; }
+
+  .gate { font-family: 'IBM Plex Mono', monospace; color: var(--text-dim); white-space: nowrap; letter-spacing: 0.04em; }
+  .feature { color: var(--text); }
+  .platform { color: var(--text-dim); white-space: nowrap; }
+
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.09em;
+    padding: 4px 9px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .status .dot { width: 5px; height: 5px; }
+  .status--live { color: var(--live); background: rgba(76, 195, 138, 0.10); }
+  .status--live .dot { background: var(--live); }
+  .status--planned { color: var(--planned); background: rgba(107, 114, 128, 0.10); }
+  .status--planned .dot { background: var(--planned); }
+
+  .flip-row { animation: flipIn 0.5s ease both; }
+  @media (prefers-reduced-motion: reduce) { .flip-row { animation: none; } }
+  @keyframes flipIn {
+    from { opacity: 0; transform: translateY(5px) scaleY(0.96); transform-origin: top; }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* ---------- principles ---------- */
+  .principles { display: grid; gap: 18px; }
+  .principle { display: flex; gap: 14px; padding-left: 4px; border-left: 2px solid var(--amber-dim); padding-block: 2px 2px; }
+  .principle .txt h3 { font-size: 15.5px; color: var(--text); margin-bottom: 4px; }
+  .principle .txt p { margin: 0; color: var(--text-dim); font-size: 14px; }
+
+  /* ---------- footer ---------- */
+  .footer { padding-block: 40px 60px; }
+  .stack {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    margin-bottom: 26px;
+  }
+  .stack span { padding: 5px 10px; border: 1px solid var(--border); border-radius: 3px; }
+
+  .cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 20px;
+    background: var(--amber);
+    color: #14100a;
+    font-weight: 600;
+    font-size: 14.5px;
+    text-decoration: none;
+    border-radius: 4px;
+  }
+  .cta:hover { background: #ffb84f; }
+
+  .fine {
+    margin-top: 22px;
+    font-size: 13px;
+    color: var(--text-faint);
+    max-width: 62ch;
+    line-height: 1.6;
+  }
+</style>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="topbar-label"><span class="dot"></span>AGENT STATUS BOARD</div>
+    <div class="topbar-right">
+      <span id="clock">--:--:--</span>
+      <a class="topbar-link" href="https://github.com/mungonkim/unified-booking-agent">GitHub ↗</a>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <section class="hero">
+    <div class="eyebrow">PERSONAL PROJECT · 개인 프로젝트</div>
+    <h1 class="title">통합 <span class="hl">예약</span> 에이전트</h1>
+    <p class="lede">
+      식당이든 병원이든 미용실이든, <strong>예약 가능한 시간은 늘 여러 플랫폼에 흩어져 있습니다.</strong>
+      매번 사이트를 옮겨 다니며 달력을 눌러보는 대신, 자연어로 한 줄 물어보면
+      가장 빠른 예약 시간을 찾아주는 개인 프로젝트입니다. 결제 없는 예약은 자동으로 진행하고,
+      결제가 필요할 때만 직접 하도록 안내하는 것이 목표입니다.
+    </p>
+    <div class="status-pill"><span class="dot"></span>NAVER 예약 조회 · LIVE</div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>진행 상황</h2>
+      <span class="count">4 / 9 LIVE</span>
+    </div>
+    <div class="board-scroll">
+      <table class="board">
+        <thead>
+          <tr>
+            <th>GATE</th>
+            <th>기능</th>
+            <th>플랫폼</th>
+            <th>상태</th>
+          </tr>
+        </thead>
+        <tbody id="board-body">
+          <tr class="flip-row" style="animation-delay:.00s">
+            <td class="gate">NV·01</td>
+            <td class="feature">자연어 질의로 가용 시간 조회</td>
+            <td class="platform">네이버예약</td>
+            <td><span class="status status--live"><span class="dot"></span>LIVE</span></td>
+          </tr>
+          <tr class="flip-row" style="animation-delay:.04s">
+            <td class="gate">NV·02</td>
+            <td class="feature">업종별 화면(디자이너·서비스·룸) 자동 대응</td>
+            <td class="platform">네이버예약</td>
+            <td><span class="status status--live"><span class="dot"></span>LIVE</span></td>
+          </tr>
+          <tr class="flip-row" style="animation-delay:.08s">
+            <td class="gate">NV·03</td>
+            <td class="feature">신형·구형 캘린더 마크업 대응</td>
+            <td class="platform">네이버예약</td>
+            <td><span class="status status--live"><span class="dot"></span>LIVE</span></td>
+          </tr>
+          <tr class="flip-row" style="animation-delay:.12s">
+            <td class="gate">NV·04</td>
+            <td class="feature">같은 장소 후속 질문 세션 재사용</td>
+            <td class="platform">네이버예약</td>
+            <td><span class="status status--live"><span class="dot"></span>LIVE</span></td>
+          </tr>
+          <tr class="flip-row" style="animation-delay:.16s">
+            <td class="gate">NV·05</td>
+            <td class="feature">결제 없는 예약 자동 완료</td>
+            <td class="platform">네이버예약</td>
+            <td><span class="status status--planned"><span class="dot"></span>PLANNED</span></td>
+          </tr>
+          <tr class="flip-row" style="animation-delay:.20s">
+            <td class="gate">NV·06</td>
+            <td class="feature">결제 필요 여부 판단 &amp; 결제 안내</td>
+            <td class="platform">네이버예약</td>
+            <td><span class="status status--planned"><span class="dot"></span>PLANNED</span></td>
+          </tr>
+          <tr class="flip-row" style="animation-delay:.24s">
+            <td class="gate">CT·01</td>
+            <td class="feature">조회 · 예약 지원</td>
+            <td class="platform">캐치테이블</td>
+            <td><span class="status status--planned"><span class="dot"></span>PLANNED</span></td>
+          </tr>
+          <tr class="flip-row" style="animation-delay:.28s">
+            <td class="gate">PF·01</td>
+            <td class="feature">플랫폼 공통 어댑터 계층</td>
+            <td class="platform">전체</td>
+            <td><span class="status status--planned"><span class="dot"></span>PLANNED</span></td>
+          </tr>
+          <tr class="flip-row" style="animation-delay:.32s">
+            <td class="gate">PF·02</td>
+            <td class="feature">조건 기반 장소 추천</td>
+            <td class="platform">전체</td>
+            <td><span class="status status--planned"><span class="dot"></span>PLANNED</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>만드는 방식</h2></div>
+    <div class="principles">
+      <div class="principle">
+        <div class="txt">
+          <h3>업종을 몰라도 됩니다</h3>
+          <p>식당인지 미용실인지 병원인지 먼저 알려줄 필요 없이, 장소 이름만으로 물어보면 됩니다.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <div class="txt">
+          <h3>결제는 사람이, 조회와 클릭은 에이전트가</h3>
+          <p>결제 없는 예약은 끝까지 자동으로 진행하고, 결제가 필요한 순간에만 사용자에게 넘깁니다.</p>
+        </div>
+      </div>
+      <div class="principle">
+        <div class="txt">
+          <h3>핵심 로직은 비공개로 유지</h3>
+          <p>예약 페이지 대응 노하우가 담긴 매칭 엔진은 로컬에만 두고, 저장소에는 진행 상황과 구조만 공개합니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="footer">
+    <div class="stack"><span>PYTHON</span><span>PLAYWRIGHT</span><span>CLAUDE API</span></div>
+    <a class="cta" href="https://github.com/mungonkim/unified-booking-agent">GitHub에서 진행 상황 보기 ↗</a>
+    <p class="fine">
+      비공개 저장소가 아니라 진행 상황을 보여주기 위한 공개 저장소입니다.
+      예약 페이지의 실제 매칭 로직은 포함되어 있지 않습니다.
+    </p>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    var el = document.getElementById('clock');
+    function tick() {
+      try {
+        var s = new Date().toLocaleTimeString('ko-KR', { hour12: false });
+        el.textContent = s + ' KST';
+      } catch (e) {}
+    }
+    tick();
+    setInterval(tick, 1000);
+  })();
+</script>
